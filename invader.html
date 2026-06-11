@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AKIHA JAPAN - 宇宙インベーダーゲーム</title>
+  <title>AKIHA JAPAN - 宇宙インベーダーゲーム（蛸・蟻版）</title>
   <style>
     body {
       margin: 0;
@@ -21,7 +21,6 @@
       margin: 0 auto;
       max-width: 100%;
     }
-    /* スマホ用コントローラー */
     .controls {
       display: flex;
       justify-content: center;
@@ -51,10 +50,8 @@
   <h1>🚀 AKIHA JAPAN : SPACE INVADERS</h1>
   <div id="score-board">SCORE: <span id="score">0</span></div>
 
-  <!-- ゲーム画面 -->
   <canvas id="gameCanvas" width="400" height="400"></canvas>
 
-  <!-- スマホ用ボタン（PCのキーボードでも動きます） -->
   <div class="controls">
     <button class="btn" id="btn-left">◀</button>
     <button class="btn" id="btn-fire">FIRE</button>
@@ -71,43 +68,42 @@
     let score = 0;
     let gameOver = false;
 
-    // 自機（プレイヤー）
     const player = { x: 180, y: 360, width: 30, height: 20, speed: 5 };
-
-    // 弾の配列
     let bullets = [];
-    // インベーダーの配列
     let invaders = [];
 
-    // インベーダーの初期配置
     const rows = 3;
     const cols = 6;
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
+        // 段（r）によって種類を分ける
+        let type = "normal";
+        if (r === 0) type = "tako"; // 1段目はタコ
+        if (r === 1) type = "ari";  // 2段目はアリ
+
         invaders.push({
           x: 40 + c * 50,
-          y: 40 + r * 35,
-          width: 25,
-          height: 20,
+          y: 40 + r * 40,
+          width: 30,
+          height: 25,
+          type: type,
           alive: true
         });
       }
     }
 
-    let invaderSpeed = 0.5;
-    let invaderDirection = 1; // 1: 右, -1: 左
+    let invaderSpeed = 0.6;
+    let invaderDirection = 1;
 
-    // キーボード入力の状態
     let rightPressed = false;
     let leftPressed = false;
 
-    // イベントリスナー（PCキーボード）
     document.addEventListener("keydown", (e) => {
       if (e.key === "ArrowRight") rightPressed = true;
       if (e.key === "ArrowLeft") leftPressed = true;
       if (e.key === " " || e.key === "Spacebar") {
         fireBullet();
-        e.preventDefault(); // スペースキーでの画面スクロールを防止
+        e.preventDefault();
       }
     });
     document.addEventListener("keyup", (e) => {
@@ -115,7 +111,6 @@
       if (e.key === "ArrowLeft") leftPressed = false;
     });
 
-    // タッチボタンのイベント（スマホ用）
     document.getElementById("btn-left").addEventListener("pointerdown", () => leftPressed = true);
     document.getElementById("btn-left").addEventListener("pointerup", () => leftPressed = false);
     document.getElementById("btn-right").addEventListener("pointerdown", () => rightPressed = true);
@@ -124,13 +119,11 @@
 
     function fireBullet() {
       if (gameOver) return;
-      // 画面上の弾が3発未満のときだけ撃てる（連射制限）
       if (bullets.length < 3) {
         bullets.push({ x: player.x + player.width / 2 - 2, y: player.y, width: 4, height: 10, speed: 7 });
       }
     }
 
-    // メインのゲームループ
     function gameLoop() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -148,28 +141,22 @@
       }
     }
 
-    // 状態の更新
     function update() {
-      // プレイヤーの移動
       if (rightPressed && player.x < canvas.width - player.width) player.x += player.speed;
       if (leftPressed && player.x > 0) player.x -= player.speed;
 
-      // 弾の移動
       bullets.forEach((b, index) => {
         b.y -= b.speed;
-        if (b.y < 0) bullets.splice(index, 1); // 画面外に出たら消去
+        if (b.y < 0) bullets.splice(index, 1);
       });
 
-      // インベーダーの移動
       let shiftDown = false;
       invaders.forEach(inv => {
         if (!inv.alive) return;
         inv.x += invaderSpeed * invaderDirection;
-        // 壁にぶつかったら折り返すフラグを立てる
         if (inv.x > canvas.width - inv.width || inv.x < 0) {
           shiftDown = true;
         }
-        // 自機の位置まで侵略されたらゲームオーバー
         if (inv.y + inv.height >= player.y) {
           gameOver = true;
         }
@@ -177,50 +164,58 @@
 
       if (shiftDown) {
         invaderDirection *= -1;
-        invaders.forEach(inv => { if (inv.alive) inv.y += 15; }); // 一歩前進
+        invaders.forEach(inv => { if (inv.alive) inv.y += 15; });
       }
 
-      // 当たり判定（弾 と インベーダー）
       bullets.forEach((b, bIdx) => {
         invaders.forEach((inv) => {
           if (inv.alive && b.x > inv.x && b.x < inv.x + inv.width && b.y > inv.y && b.y < inv.y + inv.height) {
-            inv.alive = false;     // インベーダー死亡
-            bullets.splice(bIdx, 1); // 弾消滅
-            score += 10;
+            inv.alive = false;
+            bullets.splice(bIdx, 1);
+            
+            // 敵の種類によってスコアを変える
+            if (inv.type === "tako") score += 30;
+            else if (inv.type === "ari") score += 20;
+            else score += 10;
+            
             scoreEl.textContent = score;
             
-            // 全滅チェック
             if (invaders.every(i => !i.alive)) {
-              gameOver = true; // クリアだけど簡易的に終了
+              gameOver = true;
             }
           }
         });
       });
     }
 
-    // 描画処理
     function draw() {
-      // プレイヤー（緑のロケット型）
+      // プレイヤー（緑）
       ctx.fillStyle = "#00ff00";
       ctx.fillRect(player.x, player.y, player.width, player.height);
 
-      // 弾（黄色）
+      // 弾（黄）
       ctx.fillStyle = "#ffff00";
       bullets.forEach(b => ctx.fillRect(b.x, b.y, b.width, b.height));
 
-      // インベーダー（白のドット）
-      ctx.fillStyle = "#ffffff";
+      // 敵の描画
       invaders.forEach(inv => {
         if (inv.alive) {
-          ctx.fillRect(inv.x, inv.y, inv.width, inv.height);
-          // 簡易的な目の描写
-          ctx.clearRect(inv.x + 4, inv.y + 4, 3, 3);
-          ctx.clearRect(inv.x + 18, inv.y + 4, 3, 3);
+          ctx.font = "20px sans-serif";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "top";
+          
+          // タイプに合わせて文字（絵文字）を描画
+          if (inv.type === "tako") {
+            ctx.fillText("🐙", inv.x + inv.width / 2, inv.y);
+          } else if (inv.type === "ari") {
+            ctx.fillText("🐜", inv.x + inv.width / 2, inv.y);
+          } else {
+            ctx.fillText("👾", inv.x + inv.width / 2, inv.y);
+          }
         }
       });
     }
 
-    // ゲーム開始
     gameLoop();
   </script>
 </body>
