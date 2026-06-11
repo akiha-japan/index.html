@@ -2,10 +2,122 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>akiha</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AKIHA JAPA</title>
+
+  <style>
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Kaku Gothic ProN", sans-serif;
+      background: #f6f6f6;
+      color: #222;
+    }
+
+    header {
+      background: #fff;
+      padding: 20px;
+      border-bottom: 1px solid #ddd;
+      position: sticky;
+      top: 0;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 20px;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 20px auto;
+      padding: 0 15px;
+    }
+
+    .section-title {
+      margin: 20px 0 10px;
+      font-size: 16px;
+      font-weight: bold;
+    }
+
+    .card {
+      background: #fff;
+      border-radius: 10px;
+      padding: 15px;
+      margin-bottom: 12px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+
+    .card h2 {
+      font-size: 16px;
+      margin: 0 0 8px;
+    }
+
+    .meta {
+      font-size: 12px;
+      color: #777;
+    }
+
+    .category {
+      display: inline-block;
+      font-size: 12px;
+      background: #eee;
+      padding: 3px 8px;
+      border-radius: 20px;
+      margin-right: 5px;
+    }
+
+    footer {
+      text-align: center;
+      padding: 30px;
+      font-size: 12px;
+      color: #888;
+    }
+  </style>
 </head>
+
 <body>
+
+<header>
   <h1>AKIHA JAPA</h1>
-  <p>テストサイトです</p>
+</header>
+
+<div class="container">
+
+  <div class="section-title">最新記事</div>
+
+  <div class="card">
+    <h2>X投稿まとめ：AI音楽について</h2>
+    <div class="meta">2026/06/11</div>
+    <p>AI音楽制作の実験ログと考察。</p>
+    <span class="category">AI音楽</span>
+    <span class="category">Xまとめ</span>
+  </div>
+
+  <div class="card">
+    <h2>社会メモ：気になったニュース</h2>
+    <div class="meta">2026/06/11</div>
+    <p>Xで投稿した内容の整理。</p>
+    <span class="category">社会</span>
+  </div>
+
+  <div class="section-title">カテゴリ</div>
+
+  <div class="card">
+    <p>・AI音楽</p>
+    <p>・X投稿まとめ</p>
+    <p>・社会考察</p>
+  </div>
+
+  <div class="section-title">X埋め込み（ここに追加可能）</div>
+
+  <div class="card">
+    <p>ここにXの投稿を埋め込めます（後で追加可能）</p>
+  </div>
+
+</div>
+
+<footer>
+  © AKIHA JAPA
+</footer>
+
 </body>
 </html>
