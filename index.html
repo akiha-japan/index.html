@@ -2,72 +2,43 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AKIHA JAPA</title>
+  <title>AKIHA JAPAN</title>
 
   <style>
     body {
-      margin: 0;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Kaku Gothic ProN", sans-serif;
-      background: #f6f6f6;
-      color: #222;
-    }
-
-    header {
-      background: #fff;
+      font-family: sans-serif;
+      max-width: 700px;
+      margin: auto;
       padding: 20px;
-      border-bottom: 1px solid #ddd;
-      position: sticky;
-      top: 0;
+      background: #fafafa;
     }
 
-    header h1 {
-      margin: 0;
-      font-size: 20px;
+    h1 {
+      font-size: 24px;
+      margin-bottom: 5px;
     }
 
-    .container {
-      max-width: 900px;
-      margin: 20px auto;
-      padding: 0 15px;
-    }
-
-    .section-title {
-      margin: 20px 0 10px;
-      font-size: 16px;
-      font-weight: bold;
+    .subtitle {
+      color: #666;
+      margin-bottom: 25px;
     }
 
     .card {
-      background: #fff;
-      border-radius: 10px;
+      display: block;
+      background: white;
       padding: 15px;
-      margin-bottom: 12px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+      margin: 10px 0;
+      border-radius: 10px;
+      text-decoration: none;
+      color: black;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.08);
     }
 
-    .card h2 {
-      font-size: 16px;
-      margin: 0 0 8px;
+    .card:hover {
+      transform: scale(1.01);
     }
 
-    .meta {
-      font-size: 12px;
-      color: #777;
-    }
-
-    .category {
-      display: inline-block;
-      font-size: 12px;
-      background: #eee;
-      padding: 3px 8px;
-      border-radius: 20px;
-      margin-right: 5px;
-    }
-
-    footer {
-      text-align: center;
-      padding: 30px;
+    .tag {
       font-size: 12px;
       color: #888;
     }
@@ -76,57 +47,26 @@
 
 <body>
 
-<header>
-  <h1>AKIHA JAPA</h1>
-</header>
+  <h1>AKIHA JAPAN</h1>
+  <div class="subtitle">X投稿・AI制作・ツール置き場</div>
 
-<div class="container">
+  <h2>📊 ツール</h2>
 
-  <div class="section-title">最新記事</div>
+  <a class="card" href="simulator.html">
+    <div class="tag">YouTube収益計算</div>
+    📊 YouTube配信 収益シミュレーター
+    <br>
+    再生回数や単価を動かして収益を計算
+  </a>
 
-  <div class="card">
-    <h2>X投稿まとめ：AI音楽について</h2>
-    <div class="meta">2026/06/11</div>
-    <p>AI音楽制作の実験ログと考察。</p>
-    <span class="category">AI音楽</span>
-    <span class="category">Xまとめ</span>
-  </div>
+  <h2>🎮 作品</h2>
 
-  <div class="card">
-    <h2>社会メモ：気になったニュース</h2>
-    <div class="meta">2026/06/11</div>
-    <p>Xで投稿した内容の整理。</p>
-    <span class="category">社会</span>
-  </div>
-
-  <div class="section-title">カテゴリ</div>
-
-  <div class="card">
-    <p>・AI音楽</p>
-    <p>・X投稿まとめ</p>
-    <p>・社会考察</p>
-  </div>
-
-  <div class="section-title">X埋め込み（ここに追加可能ｑｑｑｑｑｑｑｑｑｑｑ）</div>
-
-  <div class="card">
-    <p>ここにXの投稿を埋め込めます（後で追加可能）</p>
-  </div>
-
-
-<div class="card">
-  <h2>新しい記事タああああイトル</h2>
-  <div class="meta">2026/06/11</div>
-  <p>ここに内容を書く</p>
-  <span class="category">AI音あああああ楽</span>
-</div>
-
-  
-</div>
-
-<footer>
-  © AKIHA JAPA
-</footer>
+  <a class="card" href="invader.html">
+    <div class="tag">ゲーム</div>
+    🚀 AKIHA JAPAN : SPACE INVADERS
+    <br>
+    AIで試作したミニゲーム
+  </a>
 
 </body>
 </html>
