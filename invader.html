@@ -2,283 +2,137 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>🚀 シューティングゲーム🛵 SPACE HONGDARS 🏍️</title>
+  <title>🚀 SPACE HONGDARS: ULTIMATE</title>
   <style>
-    body {
-      margin: 0;
-      background: #111;
-      color: #fff;
-      font-family: sans-serif;
-      text-align: center;
-    }
-    h1 { margin-top: 15px; font-size: 1.4rem; color: #00ff00; margin-bottom: 5px; }
-    
-    /* ステータス表示エリア */
-    .status-container {
-      display: flex;
-      justify-content: center;
-      gap: 30px;
-      font-size: 1.2rem;
-      font-weight: bold;
-      margin-bottom: 10px;
-    }
-    #score-board { color: #fff; }
-    #ammo-board { color: #ff9900; }
-
-    #gameCanvas {
-      background: #000;
-      border: 4px solid #333;
-      display: block;
-      margin: 0 auto;
-      max-width: 100%;
-    }
-
-    /* ゲーム画面の外に配置する説明文のスタイル */
-    .game-instructions {
-      max-width: 400px;
-      margin: 12px auto 0 auto;
-      text-align: left;
-      background: #222;
-      padding: 12px;
-      border-radius: 6px;
-      border: 1px solid #444;
-      font-size: 0.85rem;
-      line-height: 1.6;
-      color: #ccc;
-    }
-    .game-instructions p { margin: 4px 0; }
-    .highlight-text { color: #00ff00; font-weight: bold; }
-
-    .controls {
-      display: flex;
-      justify-content: center;
-      gap: 20px;
-      margin-top: 15px;
-    }
-    .btn {
-      width: 70px;
-      height: 60px;
-      background: #333;
-      border: 2px solid #555;
-      color: #fff;
-      font-size: 1.2rem;
-      font-weight: bold;
-      border-radius: 8px;
-      user-select: none;
-      touch-action: manipulation;
-    }
-    .btn:active { background: #555; }
-    #btn-fire { background: #cc0000; border-color: #ff3333; width: 100px; }
-    #btn-fire:active { background: #ff0000; }
-    .info { color: #888; font-size: 0.85rem; margin-top: 15px; }
+    body { margin: 0; background: #000; color: #fff; font-family: sans-serif; text-align: center; }
+    h1 { margin: 10px 0; font-size: 1.2rem; color: #00ff00; }
+    .status { display: flex; justify-content: center; gap: 20px; font-weight: bold; margin-bottom: 5px; }
+    #gameCanvas { background: #000; border: 2px solid #555; display: block; margin: 0 auto; }
+    .instructions { color: #888; font-size: 0.8rem; margin: 10px; }
+    .btn-group { display: flex; justify-content: center; gap: 10px; margin-top: 10px; }
+    .btn { width: 60px; height: 50px; background: #333; color: #fff; border: 1px solid #777; border-radius: 5px; }
   </style>
 </head>
 <body>
-
-  <h1>🚀 シューティングゲーム🛵 SPACE HONGDARS 🏍️</h1>
-  
-  <div class="status-container">
-    <div id="score-board">SCORE: <span id="score">0</span></div>
-    <div id="ammo-board">残り手数: <span id="ammo">100</span></div>
+  <h1>SPACE HONGDARS : ULTIMATE</h1>
+  <div class="status">
+    <div>STAGE: <span id="stage">1</span></div>
+    <div>SCORE: <span id="score">0</span></div>
+    <div>残り: <span id="ammo">100</span></div>
   </div>
-
   <canvas id="gameCanvas" width="400" height="400"></canvas>
-
-  <div class="game-instructions">
-    <p><span class="highlight-text">【作戦指令】</span> 迫り来る 🐙 🐜 🏍️ を全滅させよ！</p>
-    <p><span class="highlight-text">【獲得得点】</span> 🐙 : 30pts / 🐜 : 20pts / 🏍️ : 10pts</p>
+  <div class="instructions">移動: ◀ ▶ / 攻撃: [Space]</div>
+  <div class="btn-group">
+    <button class="btn" onclick="move(-5)">◀</button>
+    <button class="btn" onclick="fire()" style="background:#800">FIRE</button>
+    <button class="btn" onclick="move(5)">▶</button>
   </div>
 
-  <div class="controls">
-    <button class="btn" id="btn-left">◀</button>
-    <button class="btn" id="btn-fire">FIRE</button>
-    <button class="btn" id="btn-right">▶</button>
-  </div>
+<script>
+  const canvas = document.getElementById("gameCanvas");
+  const ctx = canvas.getContext("2d");
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
-  <p class="info">PC操作: 左右矢印キー [←][→] で移動 / [スペースキー] で攻撃</p>
+  // ゲーム状態
+  let score = 0, ammo = 100, stage = 1, gameOver = false;
+  let player = { x: 180, y: 360, width: 30, height: 20, mode: 'single' };
+  let bullets = [], invaders = [], particles = [], stars = [], enemyBullets = [], ufo = null, powerup = null;
 
-  <script>
-    const canvas = document.getElementById("gameCanvas");
-    const ctx = canvas.getContext("2d");
-    const scoreEl = document.getElementById("score");
-    const ammoEl = document.getElementById("ammo");
+  // 効果音
+  function playSound(freq, type, dur) {
+    let osc = audioCtx.createOscillator();
+    let gain = audioCtx.createGain();
+    osc.frequency.value = freq;
+    osc.type = type;
+    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + dur);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(); osc.stop(audioCtx.currentTime + dur);
+  }
 
-    let score = 0;
-    let ammo = 100; 
-    let gameOver = false;
-    let gameClear = false;
-
-    // 自機（プレイヤー）の位置調整
-    const player = { x: 180, y: 360, width: 30, height: 20, speed: 5 };
-    let bullets = [];
-    let invaders = [];
-
-    const rows = 3;
-    const cols = 6;
-    for (let r = 0; r < rows; r++) {
-      for (let c = 0; c < cols; c++) {
-        let type = "bike";
-        if (r === 0) type = "tako";
-        if (r === 1) type = "ari";
-
-        invaders.push({
-          x: 40 + c * 50,
-          y: 40 + r * 40,
-          width: 30,
-          height: 25,
-          type: type,
-          alive: true
-        });
+  // 初期化
+  function initLevel() {
+    invaders = [];
+    for(let r=0; r<3; r++) {
+      for(let c=0; c<6; c++) {
+        invaders.push({x: 40+c*50, y: 40+r*40, type: r===0?'tako':r===1?'ari':'bike', alive:true});
       }
     }
+  }
 
-    let invaderSpeed = 0.6;
-    let invaderDirection = 1;
+  // 星の生成
+  for(let i=0; i<50; i++) stars.push({x:Math.random()*400, y:Math.random()*400, s:Math.random()*2});
 
-    let rightPressed = false;
-    let leftPressed = false;
-
-    document.addEventListener("keydown", (e) => {
-      if (e.key === "ArrowRight") rightPressed = true;
-      if (e.key === "ArrowLeft") leftPressed = true;
-      if (e.key === " " || e.key === "Spacebar") {
-        fireBullet();
-        e.preventDefault();
-      }
-    });
-    document.addEventListener("keyup", (e) => {
-      if (e.key === "ArrowRight") rightPressed = false;
-      if (e.key === "ArrowLeft") leftPressed = false;
-    });
-
-    document.getElementById("btn-left").addEventListener("pointerdown", () => leftPressed = true);
-    document.getElementById("btn-left").addEventListener("pointerup", () => leftPressed = false);
-    document.getElementById("btn-right").addEventListener("pointerdown", () => rightPressed = true);
-    document.getElementById("btn-right").addEventListener("pointerup", () => rightPressed = false);
-    document.getElementById("btn-fire").addEventListener("pointerdown", fireBullet);
-
-    function fireBullet() {
-      if (gameOver || gameClear) return;
-      if (ammo <= 0) return;
-
-      if (bullets.length < 3) {
-        bullets.push({ x: player.x + player.width / 2 - 2, y: player.y, width: 4, height: 10, speed: 7 });
-        ammo--; 
-        ammoEl.textContent = ammo;
-
-        if (ammo <= 0 && bullets.length === 0) {
-          gameOver = true;
-        }
-      }
-    }
-
-    function gameLoop() {
-      ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-      update();
-      draw();
-
-      if (!gameOver && !gameClear) {
-        requestAnimationFrame(gameLoop);
-      } else if (gameClear) {
-        ctx.fillStyle = "#00ff00";
-        ctx.font = "30px sans-serif";
-        ctx.fillText("MISSION CLEAR!", 75, 200);
-        ctx.fillStyle = "#fff";
-        ctx.font = "16px sans-serif";
-        ctx.fillText("見事に防衛成功！", 135, 240);
+  function move(d) { player.x = Math.max(0, Math.min(370, player.x + d)); }
+  function fire() {
+    if (ammo > 0) {
+      if(player.mode === 'wide') {
+        [-10, 0, 10].forEach(off => bullets.push({x:player.x+15+off, y:player.y, vx:off/5}));
       } else {
-        ctx.fillStyle = "red";
-        ctx.font = "30px sans-serif";
-        ctx.fillText("GAME OVER", 110, 200);
-        ctx.fillStyle = "#fff";
-        ctx.font = "16px sans-serif";
-        ctx.fillText("リロードして再挑戦", 135, 240);
+        bullets.push({x:player.x+15, y:player.y, vx:0});
       }
+      ammo--;
+      document.getElementById('ammo').textContent = ammo;
+      playSound(200, 'square', 0.1);
     }
+  }
 
-    function update() {
-      if (gameOver || gameClear) return;
-
-      if (rightPressed && player.x < canvas.width - player.width) player.x += player.speed;
-      if (leftPressed && player.x > 0) player.x -= player.speed;
-
-      bullets.forEach((b, index) => {
-        b.y -= b.speed;
-        if (b.y < 0) {
-          bullets.splice(index, 1);
-          if (ammo <= 0 && bullets.length === 0) {
-            gameOver = true;
-          }
-        }
-      });
-
-      let shiftDown = false;
+  function update() {
+    if(gameOver) return;
+    // 星移動
+    stars.forEach(st => { st.y += st.s; if(st.y > 400) st.y = 0; });
+    // UFO
+    if(!ufo && Math.random() < 0.005) ufo = {x:-30, y:20, active:true};
+    if(ufo) { ufo.x += 2; if(ufo.x > 430) ufo = null; }
+    // 敵移動と反撃
+    invaders.forEach(inv => {
+      inv.x += (0.5 + stage*0.2) * (Math.sin(Date.now()/500) > 0 ? 1 : -1);
+      if(Math.random() < 0.001 * stage) enemyBullets.push({x:inv.x, y:inv.y});
+    });
+    // 弾と当たり判定
+    bullets.forEach((b, i) => {
+      b.y -= 5; b.x += b.vx;
+      if(b.y < 0) bullets.splice(i,1);
+      // 敵判定
       invaders.forEach(inv => {
-        if (!inv.alive) return;
-        inv.x += invaderSpeed * invaderDirection;
-        if (inv.x > canvas.width - inv.width || inv.x < 0) {
-          shiftDown = true;
-        }
-        if (inv.y + inv.height >= player.y) {
-          gameOver = true;
+        if(inv.alive && b.x > inv.x && b.x < inv.x+30 && b.y > inv.y && b.y < inv.y+20) {
+          inv.alive = false; score += (inv.type==='tako'?30:inv.type==='ari'?20:10);
+          for(let k=0; k<5; k++) particles.push({x:inv.x, y:inv.y, vx:Math.random()-0.5, vy:Math.random()-0.5, life:20});
+          if(Math.random() < 0.1) powerup = {x:inv.x, y:inv.y};
+          playSound(400, 'sawtooth', 0.1);
         }
       });
+      if(ufo && b.x > ufo.x && b.x < ufo.x+30 && b.y > ufo.y && b.y < ufo.y+20) { ufo = null; score += 100; playSound(800, 'sine', 0.2); }
+    });
+    // 敵弾
+    enemyBullets.forEach((eb, i) => {
+      eb.y += 2;
+      if(eb.x > player.x && eb.x < player.x+30 && eb.y > player.y && eb.y < player.y+20) gameOver = true;
+    });
+    // 処理
+    if(powerup) { powerup.y += 2; if(powerup.x > player.x && powerup.x < player.x+30 && powerup.y > player.y) { player.mode = 'wide'; powerup = null; } }
+    particles.forEach((p, i) => { p.x += p.vx; p.y += p.vy; p.life--; if(p.life < 0) particles.splice(i,1); });
+    document.getElementById('score').textContent = score;
+    if(invaders.every(inv => !inv.alive)) { stage++; initLevel(); }
+    document.getElementById('stage').textContent = stage;
+  }
 
-      if (shiftDown) {
-        invaderDirection *= -1;
-        invaders.forEach(inv => { if (inv.alive) inv.y += 15; });
-      }
+  function draw() {
+    ctx.clearRect(0,0,400,400);
+    stars.forEach(st => { ctx.fillStyle="#fff"; ctx.fillRect(st.x, st.y, st.s, st.s); });
+    ctx.fillStyle="#0f0"; ctx.fillRect(player.x, player.y, 30, 20);
+    invaders.forEach(inv => { if(inv.alive) ctx.fillText(inv.type==='tako'?'🐙':inv.type==='ari'?'🐜':'🏍️', inv.x, inv.y+20); });
+    bullets.forEach(b => { ctx.fillStyle="#ff0"; ctx.fillRect(b.x, b.y, 4, 10); });
+    particles.forEach(p => { ctx.fillStyle="orange"; ctx.fillRect(p.x, p.y, 3, 3); });
+    if(ufo) ctx.fillText('🛸', ufo.x, ufo.y+20);
+    if(powerup) ctx.fillText('⚡', powerup.x, powerup.y+20);
+    enemyBullets.forEach(eb => { ctx.fillStyle="#f00"; ctx.fillRect(eb.x, eb.y, 4, 4); });
+    if(gameOver) { ctx.fillStyle="red"; ctx.font="40px Arial"; ctx.fillText("GAME OVER", 80, 200); }
+  }
 
-      bullets.forEach((b, bIdx) => {
-        invaders.forEach((inv) => {
-          if (inv.alive && b.x > inv.x && b.x < inv.x + inv.width && b.y > inv.y && b.y < inv.y + inv.height) {
-            inv.alive = false;
-            bullets.splice(bIdx, 1);
-            
-            if (inv.type === "tako") score += 30;
-            else if (inv.type === "ari") score += 20;
-            else score += 10;
-            
-            scoreEl.textContent = score;
-            
-            if (invaders.every(i => !i.alive)) {
-              gameClear = true;
-            }
-          }
-        });
-      });
-    }
-
-    function draw() {
-      // プレイヤー（緑）
-      ctx.fillStyle = "#00ff00";
-      ctx.fillRect(player.x, player.y, player.width, player.height);
-
-      // 弾（黄）
-      ctx.fillStyle = "#ffff00";
-      bullets.forEach(b => ctx.fillRect(b.x, b.y, b.width, b.height));
-
-      // 敵キャラクター
-      invaders.forEach(inv => {
-        if (inv.alive) {
-          ctx.font = "20px sans-serif";
-          ctx.textAlign = "center";
-          ctx.textBaseline = "top";
-          
-          if (inv.type === "tako") {
-            ctx.fillText("🐙", inv.x + inv.width / 2, inv.y);
-          } else if (inv.type === "ari") {
-            ctx.fillText("🐜", inv.x + inv.width / 2, inv.y);
-          } else {
-            ctx.fillText("🏍️", inv.x + inv.width / 2, inv.y);
-          }
-        }
-      });
-    }
-
-    gameLoop();
-  </script>
+  initLevel();
+  setInterval(() => { update(); draw(); }, 30);
+  window.addEventListener('keydown', (e) => { if(e.key===' ') fire(); if(e.key==='ArrowLeft') move(-20); if(e.key==='ArrowRight') move(20); });
+</script>
 </body>
 </html>
