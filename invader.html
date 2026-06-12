@@ -90,6 +90,7 @@
   <div class="game-instructions">
     <p><span class="highlight-text">【作戦指令】</span> 迫り来る 🐙 🐜 🏍️ を全滅させよ！</p>
     <p><span class="highlight-text">【獲得得点】</span> 🐙 : 30pts / 🐜 : 20pts / 🏍️ : 10pts / 🛸 : 100pts</p>
+    <p><span class="highlight-text">【防衛ライン】</span> 画面下の<span style="color:#ff3333; font-weight:bold;">赤い点線</span>を越えられたら即敗北！</p>
     <p><span class="highlight-text">【特殊補給】</span> 敵を倒すと稀に出現する ⚡ を取ると3連射に強化！</p>
   </div>
 
@@ -108,18 +109,21 @@
     const ammoEl = document.getElementById("ammo");
     const stageEl = document.getElementById("stage");
     const lifeEl = document.getElementById("life");
+    const stageBoardEl = document.getElementById("stage-board");
     
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
     let score = 0;
     let ammo = 100; 
     let stage = 1;
-    let lives = 3; // ライフを3に設定
+    let lives = 3; 
     let gameOver = false;
     let gameClear = false;
-    let invulnerableTimer = 0; // 被弾後の無敵時間
+    let invulnerableTimer = 0; 
 
     const player = { x: 180, y: 360, width: 30, height: 20, speed: 6, mode: 'single' };
+    const deadLineY = 350; 
+
     let bullets = [];
     let invaders = [];
     let particles = [];
@@ -144,6 +148,15 @@
       } catch(e) {}
     }
 
+    // ★ステージ3をLAST STAGEとして判定・表示
+    function updateStageDisplay() {
+      if (stage === 3) {
+        stageBoardEl.innerHTML = "<span style='color:#ff3333;'>LAST STAGE</span>";
+      } else {
+        stageBoardEl.innerHTML = "STAGE: <span id='stage'>" + stage + "</span>";
+      }
+    }
+
     function initLevel() {
       invaders = [];
       bullets = [];
@@ -151,7 +164,9 @@
       ufo = null;
       powerup = null;
       invaderDirection = 1;
-      player.mode = 'single'; // ステージクリアで武器はリセット
+      player.mode = 'single'; 
+
+      updateStageDisplay();
 
       for (let r = 0; r < 3; r++) {
         for (let c = 0; c < 6; c++) {
@@ -220,21 +235,18 @@
       }
     }
 
-    // ダメージを受けた時の処理
     function playerHit() {
-      if (invulnerableTimer > 0) return; // 無敵中なら無視
+      if (invulnerableTimer > 0) return; 
 
       lives--;
-      // ライフ表示の更新
       lifeEl.textContent = "❤️".repeat(lives) + "🖤".repeat(3 - lives);
 
       if (lives <= 0) {
         gameOver = true;
         playSound(100, 'sawtooth', 0.6);
       } else {
-        invulnerableTimer = 60; // 約1秒間の無敵時間
+        invulnerableTimer = 60; 
         playSound(150, 'sine', 0.3);
-        // 自機周辺に青い火花
         for(let k=0; k<10; k++) {
           particles.push({ x: player.x + 15, y: player.y + 10, vx: (Math.random()-0.5)*6, vy: (Math.random()-0.5)*6, life: 20, color: "#00ffff" });
         }
@@ -252,24 +264,25 @@
       } else if (gameClear) {
         ctx.fillStyle = "#00ff00";
         ctx.font = "30px sans-serif";
-        ctx.fillText("ALL STAGE CLEAR!", 60, 200);
+        ctx.textAlign = "center";
+        ctx.fillText("ALL STAGE CLEAR!", 200, 200);
         ctx.fillStyle = "#fff";
         ctx.font = "16px sans-serif";
-        ctx.fillText("地球の平和は守られた！", 115, 240);
+        ctx.fillText("地球の平和は守られた！", 200, 240);
       } else {
         ctx.fillStyle = "red";
         ctx.font = "30px sans-serif";
-        ctx.fillText("GAME OVER", 110, 200);
+        ctx.textAlign = "center";
+        ctx.fillText("GAME OVER", 200, 200);
         ctx.fillStyle = "#fff";
         ctx.font = "16px sans-serif";
-        ctx.fillText("リロードして再挑戦", 135, 240);
+        ctx.fillText("リロードして再挑戦", 200, 240);
       }
     }
 
     function update() {
       if (gameOver || gameClear) return;
 
-      // 無敵タイマーの減少
       if (invulnerableTimer > 0) invulnerableTimer--;
 
       stars.forEach(st => {
@@ -282,7 +295,8 @@
       }
       if(ufo) {
         ufo.x += ufo.speed;
-        if(ufo.x > 410) ufo = null;
+        // ★対策1: UFOが画面右端（400px）を超えたら完全に消滅させる（画面外からの理不尽な弾撃ちを防止）
+        if(ufo.x > 400) ufo = null;
       }
 
       if (rightPressed && player.x < canvas.width - player.width) player.x += player.speed;
@@ -306,31 +320,36 @@
         if (inv.x > canvas.width - inv.width || inv.x < 0) {
           shiftDown = true;
         }
-        if (inv.y + inv.height >= player.y) {
-          gameOver = true; // 侵略されたらライフ関係なくアウト
+        if (inv.y + inv.height >= deadLineY) {
+          gameOver = true; 
         }
       });
 
       if (shiftDown) {
         invaderDirection *= -1;
         invaders.forEach(inv => {
-          if (inv.alive) inv.y += 12; // 下降幅を少しマイルドに(15->12)
+          if (inv.alive) inv.y += 12; 
         });
       }
 
-      // 敵の攻撃率調整
+      // 敵の攻撃（画面上に実在する敵と、画面内のUFOのみ発射可能）
       invaders.forEach(inv => {
         if (inv.alive && Math.random() < 0.0004 * stage) {
-          enemyBullets.push({ x: inv.x + inv.width/2, y: inv.y + inv.height, speed: 2.5 + stage*0.2 });
+          // 敵の弾の当たり判定サイズを考慮し、半径5（直径10）のデータとして生成
+          enemyBullets.push({ x: inv.x + inv.width/2, y: inv.y + inv.height, speed: 2.3 + stage*0.2, r: 5 });
         }
       });
+      if (ufo && Math.random() < 0.01) {
+        enemyBullets.push({ x: ufo.x + ufo.width/2, y: ufo.y + ufo.height, speed: 3, r: 5 });
+      }
 
       enemyBullets.forEach((eb, index) => {
         eb.y += eb.speed;
         if (eb.y > 400) enemyBullets.splice(index, 1);
 
-        // プレイヤーへの当たり判定（ライフ減少へ変更）
-        if (eb.x > player.x && eb.x < player.x + player.width && eb.y > player.y && eb.y < player.y + player.height) {
+        // 丸い高視認性弾用の正確な当たり判定
+        if (eb.x + eb.r > player.x && eb.x - eb.r < player.x + player.width && 
+            eb.y + eb.r > player.y && eb.y - eb.r < player.y + player.height) {
           enemyBullets.splice(index, 1);
           playerHit();
         }
@@ -382,11 +401,11 @@
             }
             
             if (invaders.every(i => !i.alive)) {
-              stage++;
-              if(stage > 4) { 
+              // ★ステージ3をクリアしたらゲームクリア
+              if(stage === 3) { 
                 gameClear = true;
               } else {
-                stageEl.textContent = stage;
+                stage++;
                 initLevel();
               }
             }
@@ -416,7 +435,15 @@
         ctx.fillRect(st.x, st.y, st.speed * 0.8, st.speed * 0.8);
       });
 
-      // プレイヤー描画（無敵時間は点滅させる）
+      ctx.strokeStyle = "rgba(255, 0, 0, 0.6)";
+      ctx.lineWidth = 2;
+      ctx.setLineDash([4, 4]); 
+      ctx.beginPath();
+      ctx.moveTo(0, deadLineY);
+      ctx.lineTo(400, deadLineY);
+      ctx.stroke();
+      ctx.setLineDash([]); 
+
       if (invulnerableTimer === 0 || Math.floor(invulnerableTimer / 4) % 2 === 0) {
         ctx.fillStyle = "#00ff00";
         ctx.fillRect(player.x, player.y, player.width, player.height);
@@ -425,8 +452,17 @@
       ctx.fillStyle = "#ffff00";
       bullets.forEach(b => ctx.fillRect(b.x, b.y, b.width, b.height));
 
-      ctx.fillStyle = "#ff3333";
-      enemyBullets.forEach(eb => ctx.fillRect(eb.x, eb.y, eb.width, eb.height));
+      // ★対策2: 敵の弾を「赤くて丸い、少し大きめの光る弾（●）」に変更
+      enemyBullets.forEach(eb => {
+        ctx.beginPath();
+        ctx.arc(eb.x, eb.y, eb.r, 0, Math.PI * 2);
+        // 内側は明るい赤、外側は不透明な赤にして光っているように見せる
+        ctx.fillStyle = "#ff3333";
+        ctx.shadowBlur = 4;
+        ctx.shadowColor = "#ff0000";
+        ctx.fill();
+        ctx.shadowBlur = 0; // 他の描画に影響が出ないようリセット
+      });
 
       particles.forEach(p => {
         ctx.fillStyle = p.color || "#ff9900";
