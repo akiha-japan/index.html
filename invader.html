@@ -12,8 +12,20 @@
       font-family: sans-serif;
       text-align: center;
     }
-    h1 { margin-top: 20px; font-size: 1.4rem; color: #00ff00; }
-    #score-board { font-size: 1.2rem; margin-bottom: 10px; }
+    h1 { margin-top: 15px; font-size: 1.4rem; color: #00ff00; margin-bottom: 5px; }
+    
+    /* ステータス表示エリア */
+    .status-container {
+      display: flex;
+      justify-content: center;
+      gap: 30px;
+      font-size: 1.2rem;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    #score-board { color: #fff; }
+    #ammo-board { color: #ff9900; }
+
     #gameCanvas {
       background: #000;
       border: 4px solid #333;
@@ -48,9 +60,14 @@
 <body>
 
   <h1>🚀 シューティングゲーム🛵 SPACE HONGDARS 🏍️</h1>
-  <div id="score-board">SCORE: <span id="score">0</span></div>
+  
+  <!-- スコアと残弾数（手数）の表示 -->
+  <div class="status-container">
+    <div id="score-board">SCORE: <span id="score">0</span></div>
+    <div id="ammo-board">AMMO (残り手数): <span id="ammo">100</span></div>
+  </div>
 
-  <canvas id="gameCanvas" width="400" height="400"></canvas>
+  <canvas id="gameCanvas" width="400" height="440"></canvas>
 
   <div class="controls">
     <button class="btn" id="btn-left">◀</button>
@@ -64,12 +81,14 @@
     const canvas = document.getElementById("gameCanvas");
     const ctx = canvas.getContext("2d");
     const scoreEl = document.getElementById("score");
+    const ammoEl = document.getElementById("ammo");
 
     let score = 0;
+    let ammo = 100; // 初期の手数（弾数）
     let gameOver = false;
+    let gameClear = false;
 
-    // 自機（プレイヤーの緑のロケット）
-    const player = { x: 180, y: 360, width: 30, height: 20, speed: 5 };
+    const player = { x: 180, y: 400, width: 30, height: 20, speed: 5 };
     let bullets = [];
     let invaders = [];
 
@@ -77,9 +96,9 @@
     const cols = 6;
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
-        let type = "bike"; // 3段目はバイク（デフォルト）
-        if (r === 0) type = "tako"; // 1段目はタコ
-        if (r === 1) type = "ari";  // 2段目はアリ
+        let type = "bike";
+        if (r === 0) type = "tako";
+        if (r === 1) type = "ari";
 
         invaders.push({
           x: 40 + c * 50,
@@ -118,36 +137,61 @@
     document.getElementById("btn-fire").addEventListener("pointerdown", fireBullet);
 
     function fireBullet() {
-      if (gameOver) return;
+      if (gameOver || gameClear) return;
+      if (ammo <= 0) return; // 弾がないなら撃てない
+
+      // 画面上の同時発射は3発まで
       if (bullets.length < 3) {
         bullets.push({ x: player.x + player.width / 2 - 2, y: player.y, width: 4, height: 10, speed: 7 });
+        ammo--; // 手数を1減らす
+        ammoEl.textContent = ammo;
+
+        if (ammo <= 0 && bullets.length === 0) {
+          gameOver = true;
+        }
       }
     }
 
     function gameLoop() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-      if (!gameOver) {
-        update();
-        draw();
+      update();
+      draw();
+
+      if (!gameOver && !gameClear) {
         requestAnimationFrame(gameLoop);
+      } else if (gameClear) {
+        ctx.fillStyle = "#00ff00";
+        ctx.font = "30px sans-serif";
+        ctx.fillText("MISSION CLEAR!", 75, 220);
+        ctx.fillStyle = "#fff";
+        ctx.font = "16px sans-serif";
+        ctx.fillText("見事に防衛成功！", 135, 260);
       } else {
         ctx.fillStyle = "red";
         ctx.font = "30px sans-serif";
-        ctx.fillText("GAME OVER", 110, 200);
+        ctx.fillText("GAME OVER", 110, 220);
         ctx.fillStyle = "#fff";
         ctx.font = "16px sans-serif";
-        ctx.fillText("リロードして再挑戦", 140, 240);
+        ctx.fillText("リロードして再挑戦", 135, 260);
       }
     }
 
     function update() {
+      if (gameOver || gameClear) return;
+
       if (rightPressed && player.x < canvas.width - player.width) player.x += player.speed;
       if (leftPressed && player.x > 0) player.x -= player.speed;
 
       bullets.forEach((b, index) => {
         b.y -= b.speed;
-        if (b.y < 0) bullets.splice(index, 1);
+        if (b.y < 0) {
+          bullets.splice(index, 1);
+          // 弾が尽きて、画面上の弾もなくなったらゲームオーバー
+          if (ammo <= 0 && bullets.length === 0) {
+            gameOver = true;
+          }
+        }
       });
 
       let shiftDown = false;
@@ -175,12 +219,12 @@
             
             if (inv.type === "tako") score += 30;
             else if (inv.type === "ari") score += 20;
-            else score += 10; // バイク（旧インベーダー）は10点
+            else score += 10;
             
             scoreEl.textContent = score;
             
             if (invaders.every(i => !i.alive)) {
-              gameOver = true;
+              gameClear = true;
             }
           }
         });
@@ -188,6 +232,21 @@
     }
 
     function draw() {
+      // ゲーム画面内の下部に区切り線と簡易説明を描画
+      ctx.strokeStyle = "#333";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(0, 340);
+      ctx.lineTo(400, 340);
+      ctx.stroke();
+
+      // 説明用テキスト（キャンバス内）
+      ctx.fillStyle = "#888";
+      ctx.font = "12px sans-serif";
+      ctx.textAlign = "left";
+      ctx.fillText("【作戦指令】 迫り来る 🐙 🐜 🏍️ を全滅させよ！", 15, 360);
+      ctx.fillText("【獲得得点】 🐙:30pts / 🐜:20pts / 🏍️:10pts", 15, 380);
+
       // プレイヤー（緑）
       ctx.fillStyle = "#00ff00";
       ctx.fillRect(player.x, player.y, player.width, player.height);
@@ -196,7 +255,7 @@
       ctx.fillStyle = "#ffff00";
       bullets.forEach(b => ctx.fillRect(b.x, b.y, b.width, b.height));
 
-      // 敵キャラクターの描画
+      // 敵キャラクター
       invaders.forEach(inv => {
         if (inv.alive) {
           ctx.font = "20px sans-serif";
@@ -208,7 +267,7 @@
           } else if (inv.type === "ari") {
             ctx.fillText("🐜", inv.x + inv.width / 2, inv.y);
           } else {
-            ctx.fillText("🏍️", inv.x + inv.width / 2, inv.y); // 👾を🏍️に変更
+            ctx.fillText("🏍️", inv.x + inv.width / 2, inv.y);
           }
         }
       });
