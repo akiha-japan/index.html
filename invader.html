@@ -17,7 +17,7 @@
     .status-container {
       display: flex;
       justify-content: center;
-      gap: 20px;
+      gap: 15px;
       font-size: 1.1rem;
       font-weight: bold;
       margin-bottom: 10px;
@@ -25,6 +25,7 @@
     #stage-board { color: #00ffff; }
     #score-board { color: #ffffff; }
     #ammo-board { color: #ff9900; }
+    #life-board { color: #ff3366; }
 
     #gameCanvas {
       background: #000;
@@ -34,7 +35,6 @@
       max-width: 100%;
     }
 
-    /* ゲーム画面の外に配置する説明文 */
     .game-instructions {
       max-width: 400px;
       margin: 12px auto 0 auto;
@@ -76,18 +76,17 @@
 </head>
 <body>
 
-  <!-- タイトル修正 -->
   <h1>🚀 シューティングゲーム🛵 SPACE HONGDARS 🏍️</h1>
   
   <div class="status-container">
     <div id="stage-board">STAGE: <span id="stage">1</span></div>
     <div id="score-board">SCORE: <span id="score">0</span></div>
     <div id="ammo-board">残り手数: <span id="ammo">100</span></div>
+    <div id="life-board">LIFE: <span id="life">❤️❤️❤️</span></div>
   </div>
 
   <canvas id="gameCanvas" width="400" height="400"></canvas>
 
-  <!-- 外側に出した説明文 -->
   <div class="game-instructions">
     <p><span class="highlight-text">【作戦指令】</span> 迫り来る 🐙 🐜 🏍️ を全滅させよ！</p>
     <p><span class="highlight-text">【獲得得点】</span> 🐙 : 30pts / 🐜 : 20pts / 🏍️ : 10pts / 🛸 : 100pts</p>
@@ -108,15 +107,17 @@
     const scoreEl = document.getElementById("score");
     const ammoEl = document.getElementById("ammo");
     const stageEl = document.getElementById("stage");
+    const lifeEl = document.getElementById("life");
     
-    // サウンド用
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
     let score = 0;
     let ammo = 100; 
     let stage = 1;
+    let lives = 3; // ライフを3に設定
     let gameOver = false;
     let gameClear = false;
+    let invulnerableTimer = 0; // 被弾後の無敵時間
 
     const player = { x: 180, y: 360, width: 30, height: 20, speed: 6, mode: 'single' };
     let bullets = [];
@@ -127,11 +128,9 @@
     let ufo = null;
     let powerup = null;
 
-    // 敵の移動速度と向きの管理
     let invaderDirection = 1;
-    let baseSpeed = 0.6;
+    let baseSpeed = 0.5;
 
-    // 効果音再生
     function playSound(freq, type, dur) {
       try {
         let osc = audioCtx.createOscillator();
@@ -145,7 +144,6 @@
       } catch(e) {}
     }
 
-    // ステージ初期化
     function initLevel() {
       invaders = [];
       bullets = [];
@@ -153,8 +151,8 @@
       ufo = null;
       powerup = null;
       invaderDirection = 1;
+      player.mode = 'single'; // ステージクリアで武器はリセット
 
-      // 元のサイズ感（横30px, 縦25px）で配置
       for (let r = 0; r < 3; r++) {
         for (let c = 0; c < 6; c++) {
           let type = "bike";
@@ -173,7 +171,6 @@
       }
     }
 
-    // 背景の星を生成
     for(let i=0; i<40; i++) {
       stars.push({ x: Math.random()*400, y: Math.random()*400, speed: Math.random()*1.5 + 0.5 });
     }
@@ -204,14 +201,12 @@
       if (gameOver || gameClear) return;
       if (ammo <= 0) return;
 
-      if (bullets.length < 4) {
+      if (bullets.length < 5) {
         if (player.mode === 'wide') {
-          // 3方向ショット
-          bullets.push({ x: player.x + player.width/2 - 2, y: player.y, width: 4, height: 10, speed: 7, vx: -2 });
+          bullets.push({ x: player.x + player.width/2 - 2, y: player.y, width: 4, height: 10, speed: 7, vx: -1.5 });
           bullets.push({ x: player.x + player.width/2 - 2, y: player.y, width: 4, height: 10, speed: 7, vx: 0 });
-          bullets.push({ x: player.x + player.width/2 - 2, y: player.y, width: 4, height: 10, speed: 7, vx: 2 });
+          bullets.push({ x: player.x + player.width/2 - 2, y: player.y, width: 4, height: 10, speed: 7, vx: 1.5 });
         } else {
-          // 通常ショット
           bullets.push({ x: player.x + player.width/2 - 2, y: player.y, width: 4, height: 10, speed: 7, vx: 0 });
         }
         
@@ -221,6 +216,27 @@
 
         if (ammo <= 0 && bullets.length === 0) {
           gameOver = true;
+        }
+      }
+    }
+
+    // ダメージを受けた時の処理
+    function playerHit() {
+      if (invulnerableTimer > 0) return; // 無敵中なら無視
+
+      lives--;
+      // ライフ表示の更新
+      lifeEl.textContent = "❤️".repeat(lives) + "🖤".repeat(3 - lives);
+
+      if (lives <= 0) {
+        gameOver = true;
+        playSound(100, 'sawtooth', 0.6);
+      } else {
+        invulnerableTimer = 60; // 約1秒間の無敵時間
+        playSound(150, 'sine', 0.3);
+        // 自機周辺に青い火花
+        for(let k=0; k<10; k++) {
+          particles.push({ x: player.x + 15, y: player.y + 10, vx: (Math.random()-0.5)*6, vy: (Math.random()-0.5)*6, life: 20, color: "#00ffff" });
         }
       }
     }
@@ -237,6 +253,9 @@
         ctx.fillStyle = "#00ff00";
         ctx.font = "30px sans-serif";
         ctx.fillText("ALL STAGE CLEAR!", 60, 200);
+        ctx.fillStyle = "#fff";
+        ctx.font = "16px sans-serif";
+        ctx.fillText("地球の平和は守られた！", 115, 240);
       } else {
         ctx.fillStyle = "red";
         ctx.font = "30px sans-serif";
@@ -250,13 +269,14 @@
     function update() {
       if (gameOver || gameClear) return;
 
-      // 星のスクロール
+      // 無敵タイマーの減少
+      if (invulnerableTimer > 0) invulnerableTimer--;
+
       stars.forEach(st => {
         st.y += st.speed;
         if(st.y > 400) st.y = 0;
       });
 
-      // ボーナスUFOの出現と移動
       if(!ufo && Math.random() < 0.003) {
         ufo = { x: -30, y: 15, width: 30, height: 20, speed: 1.5 };
       }
@@ -265,11 +285,9 @@
         if(ufo.x > 410) ufo = null;
       }
 
-      // プレイヤー移動
       if (rightPressed && player.x < canvas.width - player.width) player.x += player.speed;
       if (leftPressed && player.x > 0) player.x -= player.speed;
 
-      // 自機弾の移動
       bullets.forEach((b, index) => {
         b.y -= b.speed;
         b.x += b.vx;
@@ -278,63 +296,56 @@
         }
       });
 
-      // 敵の横移動と「1段下がる」判定
       let shiftDown = false;
-      let currentSpeed = (baseSpeed + (stage - 1) * 0.2) * invaderDirection;
+      let currentSpeed = (baseSpeed + (stage - 1) * 0.15) * invaderDirection;
 
       invaders.forEach(inv => {
         if (!inv.alive) return;
         inv.x += currentSpeed;
         
-        // 画面端にぶつかったら折り返しフラグ
         if (inv.x > canvas.width - inv.width || inv.x < 0) {
           shiftDown = true;
         }
-        // 自機の位置まで侵略されたらアウト
         if (inv.y + inv.height >= player.y) {
-          gameOver = true;
+          gameOver = true; // 侵略されたらライフ関係なくアウト
         }
       });
 
-      // 端に当たったら反転して1段（15px）下ろす
       if (shiftDown) {
         invaderDirection *= -1;
         invaders.forEach(inv => {
-          if (inv.alive) inv.y += 15;
+          if (inv.alive) inv.y += 12; // 下降幅を少しマイルドに(15->12)
         });
       }
 
-      // 敵の反撃弾（ステージが進むほど高確率）
+      // 敵の攻撃率調整
       invaders.forEach(inv => {
-        if (inv.alive && Math.random() < 0.0005 * stage) {
-          enemyBullets.push({ x: inv.x + inv.width/2, y: inv.y + inv.height, speed: 3 });
+        if (inv.alive && Math.random() < 0.0004 * stage) {
+          enemyBullets.push({ x: inv.x + inv.width/2, y: inv.y + inv.height, speed: 2.5 + stage*0.2 });
         }
       });
 
-      // 敵弾の移動
       enemyBullets.forEach((eb, index) => {
         eb.y += eb.speed;
         if (eb.y > 400) enemyBullets.splice(index, 1);
 
-        // プレイヤーへの当たり判定
+        // プレイヤーへの当たり判定（ライフ減少へ変更）
         if (eb.x > player.x && eb.x < player.x + player.width && eb.y > player.y && eb.y < player.y + player.height) {
-          gameOver = true;
-          playSound(150, 'sawtooth', 0.5);
+          enemyBullets.splice(index, 1);
+          playerHit();
         }
       });
 
-      // パワーアップアイテムの移動と取得
       if(powerup) {
         powerup.y += 1.5;
         if(powerup.y > 400) powerup = null;
         else if(powerup.x > player.x && powerup.x < player.x + player.width && powerup.y > player.y && powerup.y < player.y + player.height) {
-          player.mode = 'wide'; // 3連射化
+          player.mode = 'wide'; 
           powerup = null;
           playSound(600, 'sine', 0.15);
         }
       }
 
-      // パーティクルの寿命処理
       particles.forEach((p, index) => {
         p.x += p.vx;
         p.y += p.vy;
@@ -342,15 +353,12 @@
         if(p.life <= 0) particles.splice(index, 1);
       });
 
-      // 命中判定（自機弾 vs 敵・UFO）
       bullets.forEach((b, bIdx) => {
-        // 対インベーダー
         invaders.forEach((inv) => {
           if (inv.alive && b.x > inv.x && b.x < inv.x + inv.width && b.y > inv.y && b.y < inv.y + inv.height) {
             inv.alive = false;
             bullets.splice(bIdx, 1);
             
-            // スコア配点
             if (inv.type === "tako") score += 30;
             else if (inv.type === "ari") score += 20;
             else score += 10;
@@ -358,26 +366,24 @@
             scoreEl.textContent = score;
             playSound(150, 'sawtooth', 0.05);
 
-            // 爆発火花を散らす
             for(let k=0; k<6; k++) {
               particles.push({
                 x: inv.x + inv.width/2,
                 y: inv.y + inv.height/2,
                 vx: (Math.random() - 0.5) * 4,
                 vy: (Math.random() - 0.5) * 4,
-                life: 15
+                life: 15,
+                color: "#ff9900"
               });
             }
 
-            // 10%の確率でパワーアップアイテム（⚡）を落とす
-            if(Math.random() < 0.12 && !powerup) {
+            if(Math.random() < 0.15 && !powerup) {
               powerup = { x: inv.x + inv.width/2, y: inv.y };
             }
             
-            // ステージクリア判定
             if (invaders.every(i => !i.alive)) {
               stage++;
-              if(stage > 4) { // 簡易的にステージ4で全面クリア
+              if(stage > 4) { 
                 gameClear = true;
               } else {
                 stageEl.textContent = stage;
@@ -387,7 +393,6 @@
           }
         });
 
-        // 対UFO
         if (ufo && b.x > ufo.x && b.x < ufo.x + ufo.width && b.y > ufo.y && b.y < ufo.y + ufo.height) {
           ufo = null;
           bullets.splice(bIdx, 1);
@@ -395,55 +400,51 @@
           scoreEl.textContent = score;
           playSound(500, 'sine', 0.2);
           for(let k=0; k<10; k++) {
-            particles.push({ x: b.x, y: b.y, vx: (Math.random()-0.5)*5, vy: (Math.random()-0.5)*5, life: 20 });
+            particles.push({ x: b.x, y: b.y, vx: (Math.random()-0.5)*5, vy: (Math.random()-0.5)*5, life: 20, color: "#ff9900" });
           }
         }
       });
 
-      // 弾切れゲームオーバーチェック
       if (ammo <= 0 && bullets.length === 0 && !gameClear) {
         gameOver = true;
       }
     }
 
     function draw() {
-      // 背景の星を描画
       ctx.fillStyle = "#ffffff";
       stars.forEach(st => {
         ctx.fillRect(st.x, st.y, st.speed * 0.8, st.speed * 0.8);
       });
 
-      // プレイヤー（緑）
-      ctx.fillStyle = "#00ff00";
-      ctx.fillRect(player.x, player.y, player.width, player.height);
+      // プレイヤー描画（無敵時間は点滅させる）
+      if (invulnerableTimer === 0 || Math.floor(invulnerableTimer / 4) % 2 === 0) {
+        ctx.fillStyle = "#00ff00";
+        ctx.fillRect(player.x, player.y, player.width, player.height);
+      }
 
-      // 自機弾（黄）
       ctx.fillStyle = "#ffff00";
       bullets.forEach(b => ctx.fillRect(b.x, b.y, b.width, b.height));
 
-      // 敵弾（赤）
       ctx.fillStyle = "#ff3333";
       enemyBullets.forEach(eb => ctx.fillRect(eb.x, eb.y, eb.width, eb.height));
 
-      // 爆発パーティクル（オレンジ）
-      ctx.fillStyle = "#ff9900";
-      particles.forEach(p => ctx.fillRect(p.x, p.y, 2, 2));
+      particles.forEach(p => {
+        ctx.fillStyle = p.color || "#ff9900";
+        ctx.fillRect(p.x, p.y, 2, 2);
+      });
 
-      // パワーアップアイテム（⚡）
       if(powerup) {
         ctx.font = "20px sans-serif";
         ctx.textAlign = "center";
         ctx.fillText("⚡", powerup.x, powerup.y);
       }
 
-      // ボーナスUFO（🛸）
       if(ufo) {
         ctx.font = "24px sans-serif";
         ctx.textAlign = "center";
         ctx.fillText("🛸", ufo.x + ufo.width/2, ufo.y);
       }
 
-      // 敵キャラクター（元のサイズ 24px でしっかり描画）
       invaders.forEach(inv => {
         if (inv.alive) {
           ctx.font = "24px sans-serif";
@@ -461,7 +462,6 @@
       });
     }
 
-    // 初回スタート
     initLevel();
     gameLoop();
   </script>
