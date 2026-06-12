@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AKIHA JAPAN - 宇宙インベーダーゲーム（蛸・蟻版）</title>
+  <title>🚀 シューティングゲーム🛵 SPACE HONGDARS 🏍️</title>
   <style>
     body {
       margin: 0;
@@ -12,7 +12,7 @@
       font-family: sans-serif;
       text-align: center;
     }
-    h1 { margin-top: 20px; font-size: 1.5rem; color: #00ff00; }
+    h1 { margin-top: 20px; font-size: 1.4rem; color: #00ff00; }
     #score-board { font-size: 1.2rem; margin-bottom: 10px; }
     #gameCanvas {
       background: #000;
@@ -47,7 +47,7 @@
 </head>
 <body>
 
-  <h1>🚀 AKIHA JAPAN : SPACE INVADERS</h1>
+  <h1>🚀 シューティングゲーム🛵 SPACE HONGDARS 🏍️</h1>
   <div id="score-board">SCORE: <span id="score">0</span></div>
 
   <canvas id="gameCanvas" width="400" height="400"></canvas>
@@ -68,6 +68,7 @@
     let score = 0;
     let gameOver = false;
 
+    // 自機（プレイヤーの緑のロケット）
     const player = { x: 180, y: 360, width: 30, height: 20, speed: 5 };
     let bullets = [];
     let invaders = [];
@@ -76,8 +77,7 @@
     const cols = 6;
     for (let r = 0; r < rows; r++) {
       for (let c = 0; c < cols; c++) {
-        // 段（r）によって種類を分ける
-        let type = "normal";
+        let type = "bike"; // 3段目はバイク（デフォルト）
         if (r === 0) type = "tako"; // 1段目はタコ
         if (r === 1) type = "ari";  // 2段目はアリ
 
@@ -173,10 +173,9 @@
             inv.alive = false;
             bullets.splice(bIdx, 1);
             
-            // 敵の種類によってスコアを変える
             if (inv.type === "tako") score += 30;
             else if (inv.type === "ari") score += 20;
-            else score += 10;
+            else score += 10; // バイク（旧インベーダー）は10点
             
             scoreEl.textContent = score;
             
@@ -197,20 +196,19 @@
       ctx.fillStyle = "#ffff00";
       bullets.forEach(b => ctx.fillRect(b.x, b.y, b.width, b.height));
 
-      // 敵の描画
+      // 敵キャラクターの描画
       invaders.forEach(inv => {
         if (inv.alive) {
           ctx.font = "20px sans-serif";
           ctx.textAlign = "center";
           ctx.textBaseline = "top";
           
-          // タイプに合わせて文字（絵文字）を描画
           if (inv.type === "tako") {
             ctx.fillText("🐙", inv.x + inv.width / 2, inv.y);
           } else if (inv.type === "ari") {
             ctx.fillText("🐜", inv.x + inv.width / 2, inv.y);
           } else {
-            ctx.fillText("👾", inv.x + inv.width / 2, inv.y);
+            ctx.fillText("🏍️", inv.x + inv.width / 2, inv.y); // 👾を🏍️に変更
           }
         }
       });
