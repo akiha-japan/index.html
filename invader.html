@@ -35,9 +35,34 @@
       max-width: 100%;
     }
 
+    /* 押しやすさを最優先した操作ボタンの配置 */
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      margin-top: 15px;
+      margin-bottom: 15px;
+    }
+    .btn {
+      width: 75px;
+      height: 65px;
+      background: #333;
+      border: 2px solid #555;
+      color: #fff;
+      font-size: 1.3rem;
+      font-weight: bold;
+      border-radius: 8px;
+      user-select: none;
+      touch-action: manipulation;
+    }
+    .btn:active { background: #555; }
+    #btn-fire { background: #cc0000; border-color: #ff3333; width: 110px; }
+    #btn-fire:active { background: #ff0000; }
+
+    /* 一番下に引っ越した説明文ボックス */
     .game-instructions {
       max-width: 400px;
-      margin: 12px auto 0 auto;
+      margin: 15px auto 25px auto;
       text-align: left;
       background: #222;
       padding: 12px;
@@ -49,29 +74,7 @@
     }
     .game-instructions p { margin: 4px 0; }
     .highlight-text { color: #00ff00; font-weight: bold; }
-
-    .controls {
-      display: flex;
-      justify-content: center;
-      gap: 15px;
-      margin-top: 15px;
-    }
-    .btn {
-      width: 70px;
-      height: 60px;
-      background: #333;
-      border: 2px solid #555;
-      color: #fff;
-      font-size: 1.2rem;
-      font-weight: bold;
-      border-radius: 8px;
-      user-select: none;
-      touch-action: manipulation;
-    }
-    .btn:active { background: #555; }
-    #btn-fire { background: #cc0000; border-color: #ff3333; width: 100px; }
-    #btn-fire:active { background: #ff0000; }
-    .info { color: #888; font-size: 0.85rem; margin-top: 15px; }
+    .info { color: #888; font-size: 0.85rem; margin-top: 5px; text-align: center; }
   </style>
 </head>
 <body>
@@ -87,20 +90,19 @@
 
   <canvas id="gameCanvas" width="400" height="400"></canvas>
 
-  <div class="game-instructions">
-    <p><span class="highlight-text">【作戦指令】</span> 迫り来る 🐙 🐜 🏍️ を全滅させよ！</p>
-    <p><span class="highlight-text">【獲得得点】</span> 🐙 : 30pts / 🐜 : 20pts / 🏍️ : 10pts / 🛸 : 100pts</p>
-    <p><span class="highlight-text">【防衛ライン】</span> 画面下の<span style="color:#ff3333; font-weight:bold;">赤い点線</span>を越えられたら即敗北！</p>
-    <p><span class="highlight-text">【特殊補給】</span> 敵を倒すと稀に出現する ⚡ を取ると3連射に強化！</p>
-  </div>
-
   <div class="controls">
     <button class="btn" id="btn-left">◀</button>
     <button class="btn" id="btn-fire">FIRE</button>
     <button class="btn" id="btn-right">▶</button>
   </div>
 
-  <p class="info">PC操作: 左右矢印キー [←][→] で移動 / [スペースキー] で攻撃</p>
+  <div class="game-instructions">
+    <p><span class="highlight-text">【作戦指令】</span> 迫り来る 🐙 🐜 🏍️ を全滅させよ！</p>
+    <p><span class="highlight-text">【獲得得点】</span> 🐙 : 30pts / 🐜 : 20pts / 🏍️ : 10pts / 🛸 : 100pts</p>
+    <p><span class="highlight-text">【防衛ライン】</span> 画面下の<span style="color:#ff3333; font-weight:bold;">赤い点線</span>を越えられたら即敗北！</p>
+    <p><span class="highlight-text">【特殊補給】</span> 敵を倒すと稀に出現する ⚡ を取ると3連射に強化！</p>
+    <p class="info">PC操作: 左右矢印キー [←][→] で移動 / [スペースキー] で攻撃</p>
+  </div>
 
   <script>
     const canvas = document.getElementById("gameCanvas");
@@ -148,7 +150,6 @@
       } catch(e) {}
     }
 
-    // ★ステージ3をLAST STAGEとして判定・表示
     function updateStageDisplay() {
       if (stage === 3) {
         stageBoardEl.innerHTML = "<span style='color:#ff3333;'>LAST STAGE</span>";
@@ -265,10 +266,11 @@
         ctx.fillStyle = "#00ff00";
         ctx.font = "30px sans-serif";
         ctx.textAlign = "center";
-        ctx.fillText("ALL STAGE CLEAR!", 200, 200);
+        ctx.fillText("ALL STAGE CLEAR!", 200, 180);
         ctx.fillStyle = "#fff";
         ctx.font = "16px sans-serif";
-        ctx.fillText("ホングダから地球の平和は守られた！", 200, 240);
+        // ★ご指定の文言へ変更
+        ctx.fillText("ホングダーから地球の平和は守られた！", 200, 230);
       } else {
         ctx.fillStyle = "red";
         ctx.font = "30px sans-serif";
@@ -295,7 +297,6 @@
       }
       if(ufo) {
         ufo.x += ufo.speed;
-        // ★対策1: UFOが画面右端（400px）を超えたら完全に消滅させる（画面外からの理不尽な弾撃ちを防止）
         if(ufo.x > 400) ufo = null;
       }
 
@@ -332,10 +333,8 @@
         });
       }
 
-      // 敵の攻撃（画面上に実在する敵と、画面内のUFOのみ発射可能）
       invaders.forEach(inv => {
         if (inv.alive && Math.random() < 0.0004 * stage) {
-          // 敵の弾の当たり判定サイズを考慮し、半径5（直径10）のデータとして生成
           enemyBullets.push({ x: inv.x + inv.width/2, y: inv.y + inv.height, speed: 2.3 + stage*0.2, r: 5 });
         }
       });
@@ -347,7 +346,6 @@
         eb.y += eb.speed;
         if (eb.y > 400) enemyBullets.splice(index, 1);
 
-        // 丸い高視認性弾用の正確な当たり判定
         if (eb.x + eb.r > player.x && eb.x - eb.r < player.x + player.width && 
             eb.y + eb.r > player.y && eb.y - eb.r < player.y + player.height) {
           enemyBullets.splice(index, 1);
@@ -401,7 +399,6 @@
             }
             
             if (invaders.every(i => !i.alive)) {
-              // ★ステージ3をクリアしたらゲームクリア
               if(stage === 3) { 
                 gameClear = true;
               } else {
@@ -452,16 +449,14 @@
       ctx.fillStyle = "#ffff00";
       bullets.forEach(b => ctx.fillRect(b.x, b.y, b.width, b.height));
 
-      // ★対策2: 敵の弾を「赤くて丸い、少し大きめの光る弾（●）」に変更
       enemyBullets.forEach(eb => {
         ctx.beginPath();
         ctx.arc(eb.x, eb.y, eb.r, 0, Math.PI * 2);
-        // 内側は明るい赤、外側は不透明な赤にして光っているように見せる
         ctx.fillStyle = "#ff3333";
         ctx.shadowBlur = 4;
         ctx.shadowColor = "#ff0000";
         ctx.fill();
-        ctx.shadowBlur = 0; // 他の描画に影響が出ないようリセット
+        ctx.shadowBlur = 0; 
       });
 
       particles.forEach(p => {
