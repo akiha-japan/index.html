@@ -33,6 +33,23 @@
       margin: 0 auto;
       max-width: 100%;
     }
+
+    /* ゲーム画面の外に配置する説明文のスタイル */
+    .game-instructions {
+      max-width: 400px;
+      margin: 12px auto 0 auto;
+      text-align: left;
+      background: #222;
+      padding: 12px;
+      border-radius: 6px;
+      border: 1px solid #444;
+      font-size: 0.85rem;
+      line-height: 1.6;
+      color: #ccc;
+    }
+    .game-instructions p { margin: 4px 0; }
+    .highlight-text { color: #00ff00; font-weight: bold; }
+
     .controls {
       display: flex;
       justify-content: center;
@@ -61,13 +78,17 @@
 
   <h1>🚀 シューティングゲーム🛵 SPACE HONGDARS 🏍️</h1>
   
-  <!-- スコアと残弾数（手数）の表示 -->
   <div class="status-container">
     <div id="score-board">SCORE: <span id="score">0</span></div>
-    <div id="ammo-board">AMMO (残り手数): <span id="ammo">100</span></div>
+    <div id="ammo-board">残り手数: <span id="ammo">100</span></div>
   </div>
 
-  <canvas id="gameCanvas" width="400" height="440"></canvas>
+  <canvas id="gameCanvas" width="400" height="400"></canvas>
+
+  <div class="game-instructions">
+    <p><span class="highlight-text">【作戦指令】</span> 迫り来る 🐙 🐜 🏍️ を全滅させよ！</p>
+    <p><span class="highlight-text">【獲得得点】</span> 🐙 : 30pts / 🐜 : 20pts / 🏍️ : 10pts</p>
+  </div>
 
   <div class="controls">
     <button class="btn" id="btn-left">◀</button>
@@ -84,11 +105,12 @@
     const ammoEl = document.getElementById("ammo");
 
     let score = 0;
-    let ammo = 100; // 初期の手数（弾数）
+    let ammo = 100; 
     let gameOver = false;
     let gameClear = false;
 
-    const player = { x: 180, y: 400, width: 30, height: 20, speed: 5 };
+    // 自機（プレイヤー）の位置調整
+    const player = { x: 180, y: 360, width: 30, height: 20, speed: 5 };
     let bullets = [];
     let invaders = [];
 
@@ -138,12 +160,11 @@
 
     function fireBullet() {
       if (gameOver || gameClear) return;
-      if (ammo <= 0) return; // 弾がないなら撃てない
+      if (ammo <= 0) return;
 
-      // 画面上の同時発射は3発まで
       if (bullets.length < 3) {
         bullets.push({ x: player.x + player.width / 2 - 2, y: player.y, width: 4, height: 10, speed: 7 });
-        ammo--; // 手数を1減らす
+        ammo--; 
         ammoEl.textContent = ammo;
 
         if (ammo <= 0 && bullets.length === 0) {
@@ -163,17 +184,17 @@
       } else if (gameClear) {
         ctx.fillStyle = "#00ff00";
         ctx.font = "30px sans-serif";
-        ctx.fillText("MISSION CLEAR!", 75, 220);
+        ctx.fillText("MISSION CLEAR!", 75, 200);
         ctx.fillStyle = "#fff";
         ctx.font = "16px sans-serif";
-        ctx.fillText("見事に防衛成功！", 135, 260);
+        ctx.fillText("見事に防衛成功！", 135, 240);
       } else {
         ctx.fillStyle = "red";
         ctx.font = "30px sans-serif";
-        ctx.fillText("GAME OVER", 110, 220);
+        ctx.fillText("GAME OVER", 110, 200);
         ctx.fillStyle = "#fff";
         ctx.font = "16px sans-serif";
-        ctx.fillText("リロードして再挑戦", 135, 260);
+        ctx.fillText("リロードして再挑戦", 135, 240);
       }
     }
 
@@ -187,7 +208,6 @@
         b.y -= b.speed;
         if (b.y < 0) {
           bullets.splice(index, 1);
-          // 弾が尽きて、画面上の弾もなくなったらゲームオーバー
           if (ammo <= 0 && bullets.length === 0) {
             gameOver = true;
           }
@@ -232,21 +252,6 @@
     }
 
     function draw() {
-      // ゲーム画面内の下部に区切り線と簡易説明を描画
-      ctx.strokeStyle = "#333";
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(0, 340);
-      ctx.lineTo(400, 340);
-      ctx.stroke();
-
-      // 説明用テキスト（キャンバス内）
-      ctx.fillStyle = "#888";
-      ctx.font = "12px sans-serif";
-      ctx.textAlign = "left";
-      ctx.fillText("【作戦指令】 迫り来る 🐙 🐜 🏍️ を全滅させよ！", 15, 360);
-      ctx.fillText("【獲得得点】 🐙:30pts / 🐜:20pts / 🏍️:10pts", 15, 380);
-
       // プレイヤー（緑）
       ctx.fillStyle = "#00ff00";
       ctx.fillRect(player.x, player.y, player.width, player.height);
